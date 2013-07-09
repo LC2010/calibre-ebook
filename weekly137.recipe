@@ -1,0 +1,93 @@
+# -*- python -*-
+
+import re, urlparse, itertools
+from calibre.ebooks.BeautifulSoup import NavigableString, Tag
+from datetime import date, timedelta, datetime
+import sys
+
+language = 'en-us'
+site_url = 'http://javascriptweekly.com/archive/137.html'
+site_title = u'JavaScript Weekly'
+
+
+class JavaScriptWeekly(BasicNewsRecipe):
+	# extra_css = 'h1 {font: sans-serif large;}\n.byline {font:monospace;}'
+	title = u'JavaScript Weekly'
+	language = language
+	description = u'JavaScript周刊'
+	publisher = 'LiangChao'
+	no_stylesheets = True
+	max_articles_per_feed = 100.0
+	encoding = 'utf-8'
+	remove_empty_feeds = True
+	remove_attributes = [ 'border', 'cellspacing', 'align', 'cellpadding', 'colspan',
+                          'valign', 'vspace', 'hspace', 'alt', 'width', 'height' ]
+	# delay = 4
+	oldest_article = 20000
+	# use_embedded_content  = False
+	auto_cleanup = True
+	# recursions = 40
+	# timeout = 120.0
+	# simultaneous_downloads = 20
+	# keep_only_tags = [{}]
+
+	def get_text(self, link):
+		# title = ''
+		# for c in link.contents:
+		# 	if isinstance(c, NavigableString):
+		# 		title = title + str(c);
+		# 	elif c.name == 'br':
+		# 		title = title + ': '
+		# 	else:
+		# 		pass
+		return link.contents[0].strip();
+
+
+	def parse_index(self):
+		soup = self.index_to_soup(site_url)
+		self.title = soup.html.head.title.string.strip()
+
+		mainContent = soup.find('table')
+		articles_dict = {}
+		articles_list = []
+		p_temp = [];
+		current_reading = None
+
+		count = 0
+
+		for p in mainContent.findAll("p"):
+			if p.contents[0] == "Reading":
+				current_reading = p
+				break
+
+
+		# print current_reading
+		for newp in current_reading.findNextSiblings("p"):
+
+			if newp.contents[0] == "Watching":
+				break
+
+			link = newp.find('a')
+			href = link['href']
+			print '>>>>>>>>>> href: ' + href
+
+			haslink = articles_dict.get(href)
+			if haslink:
+				pass
+			else:
+				title = self.get_text(link);
+				print '>>>>>>>>>> title: ' + title
+				a = { 'title': title, 'url': href, 'description': title }
+				articles_list.append(a)
+				articles_dict[href] = a
+
+		return [('Default', articles_list)]
+
+	def postprocess_html(self, soup, first_fetch):
+		# print '>>> post html\n' + str(soup)
+		soup.find('div', {'class': "calibre_navbar calibre_rescale_70"}).extract()
+		authoring = soup.find('div', {'class': 'authoring'})
+
+		return soup
+
+
